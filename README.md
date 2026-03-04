@@ -1,7 +1,15 @@
 
-# Smooth Scroll Acceleration for AutoHotkey v2
+# Smooth Scroll for Windows 11
+### *Smooth Scroll for Windows 11 with acceleration across all applications*
 
-This script enhances the standard mouse‑wheel behavior in Windows by introducing adaptive scroll acceleration. Instead of sending a fixed number of scroll lines per wheel notch, the script dynamically adjusts scrolling intensity based on how quickly and how repeatedly you scroll. Gentle wheel movements produce gentle scrolling, while faster or more continuous scrolling results in progressively stronger acceleration. The effect is similar to the natural acceleration and deceleration you experience when dragging to scroll on Android or other touch‑driven systems, but applied to a traditional PC mouse.
+You can simply download the Windows 64 binary release (or build yourself, see below) 
+[Smooth-Scroll-Acceleration-v5](https://github.com/MihaiCiprianChezan/Smooth-Scroll-Acceleration-for-AutoHotkey-v2/releases/tag/v5.0.0)
+ (Free / MIT License)
+
+
+# Auto-Hot-Key Script - use or compile yourself
+
+This script enhances the standard mouse‑wheel behavior in Windows 11 by introducing adaptive scroll acceleration. Instead of sending a fixed number of scroll lines per wheel notch, the script dynamically adjusts scrolling intensity based on how quickly and how repeatedly you scroll. Gentle wheel movements produce gentle scrolling, while faster or more continuous scrolling results in progressively stronger acceleration. The effect is similar to the natural acceleration and deceleration you experience when dragging to scroll on Android or other touch‑driven systems, but applied to a traditional PC mouse.
 
 The result is a smoother, more responsive, and more intuitive scrolling experience across all applications.
 
@@ -27,41 +35,12 @@ A measure of how quickly the last scroll event occurred relative to the previous
 
 Both values are combined through adjustable curves and divisors to compute the final scroll output. This output determines how many virtual scroll steps are sent for each physical wheel notch.
 
-## Tuning Parameters
-
-All behavior is controlled by constants at the top of the script:
-
-| Variable | Description |
-|---------|-------------|
-| `baseLines` | Minimum scroll lines per wheel notch |
-| `maxLines` | Maximum scroll lines allowed after acceleration |
-| `maxCombo` | Maximum combo boost |
-| `comboExp` | Exponent shaping the combo curve |
-| `comboDiv` | Divisor softening the combo effect |
-| `velDiv` | Divisor for velocity scaling |
-| `velExp` | Exponent shaping the velocity curve |
-| `velDivisor` | Additional velocity softening factor |
-| `comboDecayTime` | Time window (ms) before combo begins to fade |
-
 These values can be adjusted to achieve anything from subtle smooth scrolling to aggressive high‑speed acceleration.
-
-## Hotkeys
-
-The script overrides the default wheel behavior:
-
-- `WheelUp` triggers accelerated upward scrolling  
-- `WheelDown` triggers accelerated downward scrolling  
-
-All other mouse and system functions remain unchanged.
-
-## Usage
-
-Download the Windows 64 binary release [Smooth-Scroll-Acceleration-for-AutoHotkey-v2](https://github.com/MihaiCiprianChezan/Smooth-Scroll-Acceleration-for-AutoHotkey-v2/releases/tag/v2.0.1)
 
 ## Build yourself
 
 1. Install [AutoHotkey v2](https://www.autohotkey.com/)  
-2. Load `Smooth-Scroll-Acceleration.ahk`  
+2. Load `Smooth-Scroll-Acceleration_Smooth_v.5.ahk`  
 3. Run it  
 4. Adjust the tuning constants to match your preferred scrolling feel
 5. Generate your own executable
