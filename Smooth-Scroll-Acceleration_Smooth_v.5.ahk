@@ -1,4 +1,4 @@
-﻿#Requires AutoHotkey v2.0
+﻿#Requires AutoHotkey v5.0
 
 ; ======= ACCELERATION TUNING =======
 basePixels     := 1       ; Minimum pixels per notch (near-zero, ~1-2px)
