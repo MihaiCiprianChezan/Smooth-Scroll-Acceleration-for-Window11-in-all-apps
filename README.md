@@ -2,7 +2,7 @@
 ### *Physics-based smooth scroll with momentum and acceleration — works across all applications and all monitors*
 
 Download the latest release (Windows 64-bit binary or raw script):  
-[Smooth-Scroll-Acceleration-v15.10](https://github.com/MihaiCiprianChezan/Smooth-Scroll-Acceleration-for-Window11-in-all-apps/releases/tag/v15.10)  
+[Smooth-Scroll-Acceleration-v15.10](https://github.com/MihaiCiprianChezan/Smooth-Scroll-Acceleration-for-Window11-in-all-apps/releases/edit/v.15.3)  
 *(Free / MIT License)*
 
 ---
