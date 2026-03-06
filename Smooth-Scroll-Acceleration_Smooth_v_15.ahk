@@ -2,7 +2,7 @@
 #SingleInstance Force
 
 ; =====================================================================
-;  Smooth Scroll Acceleration v15.10 —  Hybrid Architecture
+;  Smooth Scroll Acceleration v1.15.10 —  Hybrid Architecture
 ;
 ;  TWO-LAYER DESIGN:
 ;
@@ -76,63 +76,271 @@ global g_ini := A_ScriptDir "\SmoothScroll.ini"
 
 CfgF(key, default) {
     try {
-        return Float(IniRead(g_ini, "Settings", key))
+        val := Trim(IniRead(g_ini, "Settings", key))
+        return Float(val)
     } catch {
         return default
     }
 }
 CfgI(key, default) {
     try {
-        return Integer(IniRead(g_ini, "Settings", key))
+        val := Trim(IniRead(g_ini, "Settings", key))
+        return Integer(val)
     } catch {
         return default
     }
 }
 
+ReloadConfig() {
+    global g_baseNotches, g_maxNotches, g_comboStep, g_maxCombo
+    global g_comboWindow, g_friction, g_minDebt, g_frameMs
+    global g_velInfluence, g_velSmoothing, g_velCap, g_velTimeout
+    g_baseNotches  := CfgF("baseNotches",  2.0)
+    g_maxNotches   := CfgF("maxNotches",   14.0)
+    g_comboStep    := CfgF("comboStep",    0.5)
+    g_maxCombo     := CfgF("maxCombo",     4.0)
+    g_comboWindow  := CfgI("comboWindow",  280)
+    g_friction     := CfgF("friction",     0.86)
+    g_minDebt      := CfgF("minDebt",      0.01)
+    g_frameMs      := CfgI("frameMs",      8)
+    g_velInfluence := CfgF("velInfluence", 0.35)
+    g_velSmoothing := CfgF("velSmoothing", 0.45)
+    g_velCap       := CfgF("velCap",       2.5)
+    g_velTimeout   := CfgI("velTimeout",   600)
+    TrayTip("Smooth Scroll", "Config reloaded from SmoothScroll.ini", 2)
+}
+
 if !FileExist(g_ini) {
-    iniText := "; ============================================================`n"
-        . ";  SmoothScroll.ini  -  Smooth Scroll Acceleration v15`n"
-        . "; ============================================================`n"
-        . ";  Edit values, then right-click tray icon > Reload.`n"
-        . ";  Delete this file to reset to built-in defaults.`n"
-        . "; ============================================================`n"
+    iniText := "; ================================================================`n"
+        . ";  SmoothScroll.ini  —  Smooth Scroll Acceleration v15`n"
+        . "; ================================================================`n"
+        . ";  Edit values below, save file, then right-click the tray icon`n"
+        . ";  and choose Reload Config to apply changes instantly.`n"
+        . ";  Delete this file entirely to reset everything to defaults.`n"
+        . ";`n"
+        . "; ----------------------------------------------------------------`n"
+        . ";  QUICK PRESETS — paste the values you want into [Settings] below`n"
+        . "; ----------------------------------------------------------------`n"
+        . ";`n"
+        . ";  GENTLE  — for high-DPI / hair-trigger mice (e.g. Alienware, Razer)`n"
+        . ";    One wheel click scrolls a small, controlled amount.`n"
+        . ";    Fast spinning builds very little extra momentum.`n"
+        . ";    baseNotches=1.0  maxNotches=6.0   comboStep=0.2  maxCombo=2.0`n"
+        . ";    comboWindow=200  friction=0.80    minDebt=0.02   frameMs=8`n"
+        . ";    velInfluence=0.2 velSmoothing=0.6 velCap=1.5     velTimeout=400`n"
+        . ";`n"
+        . ";  BALANCED — smooth and natural for most mice  (DEFAULT)`n"
+        . ";    baseNotches=1.5  maxNotches=10.0  comboStep=0.3  maxCombo=3.0`n"
+        . ";    comboWindow=250  friction=0.83    minDebt=0.02   frameMs=8`n"
+        . ";    velInfluence=0.35 velSmoothing=0.45 velCap=2.5   velTimeout=600`n"
+        . ";`n"
+        . ";  FLOATY  — for slow scroll wheels or trackballs`n"
+        . ";    One click scrolls a lot. Fast spinning builds strong momentum`n"
+        . ";    that glides for a long time before stopping.`n"
+        . ";    baseNotches=3.0  maxNotches=20.0  comboStep=0.8  maxCombo=6.0`n"
+        . ";    comboWindow=350  friction=0.92    minDebt=0.005  frameMs=8`n"
+        . ";    velInfluence=0.5 velSmoothing=0.3 velCap=4.0     velTimeout=800`n"
+        . ";`n"
+        . "; ================================================================`n"
         . "[Settings]`n"
         . "`n"
-        . "; Total notch budget per slow single click.`n"
-        . "; 1.0 = same as one real notch.  2.0 = double.`n"
-        . "baseNotches = 2.0`n"
+        . "; ----------------------------------------------------------------`n"
+        . "; HOW MUCH DOES ONE WHEEL CLICK SCROLL?`n"
+        . ";`n"
+        . "; Each physical click of your scroll wheel is one step.`n"
+        . "; This controls how many scroll steps are sent per click`n"
+        . "; when scrolling slowly and casually (no speed, no momentum).`n"
+        . ";`n"
+        . ";   1.0 = one click scrolls exactly as Windows normally would`n"
+        . ";   1.5 = one click scrolls 1.5x the normal amount`n"
+        . ";   2.0 = one click scrolls twice the normal amount`n"
+        . ";`n"
+        . "; Lower this if even slow scrolling feels too fast.`n"
+        . "; ----------------------------------------------------------------`n"
+        . "baseNotches=1.5`n"
         . "`n"
-        . "; Hard cap on notch budget per click.`n"
-        . "maxNotches = 14.0`n"
+        . "; ----------------------------------------------------------------`n"
+        . "; MAXIMUM SCROLL AMOUNT PER CLICK (hard ceiling)`n"
+        . ";`n"
+        . "; No matter how fast you spin the wheel or how much momentum`n"
+        . "; has built up, a single wheel click will never scroll more`n"
+        . "; than this many steps. This prevents runaway scrolling.`n"
+        . ";`n"
+        . ";   6.0  = gentle cap, good for sensitive mice`n"
+        . ";   10.0 = moderate cap`n"
+        . ";   20.0 = very high, almost no ceiling`n"
+        . ";`n"
+        . "; Lower this if fast scrolling still feels out of control.`n"
+        . "; ----------------------------------------------------------------`n"
+        . "maxNotches=10.0`n"
         . "`n"
-        . "; Combo multiplier growth per rapid click.`n"
-        . "comboStep = 0.5`n"
+        . "; ----------------------------------------------------------------`n"
+        . "; HOW FAST DOES MOMENTUM BUILD WHEN SPINNING QUICKLY?`n"
+        . ";`n"
+        . "; When you spin the wheel rapidly, each successive click adds`n"
+        . "; a momentum boost on top of the previous one — like pushing`n"
+        . "; a swing repeatedly. This controls how big each boost is.`n"
+        . ";`n"
+        . ";   0.1 = very gradual buildup (many clicks to reach full speed)`n"
+        . ";   0.3 = moderate buildup`n"
+        . ";   0.8 = aggressive buildup (momentum surges after just a few clicks)`n"
+        . ";`n"
+        . "; Lower this if a few fast clicks already feel too powerful.`n"
+        . "; ----------------------------------------------------------------`n"
+        . "comboStep=0.3`n"
         . "`n"
-        . "; Maximum combo multiplier.`n"
-        . "maxCombo = 4.0`n"
+        . "; ----------------------------------------------------------------`n"
+        . "; MAXIMUM MOMENTUM MULTIPLIER (combo ceiling)`n"
+        . ";`n"
+        . "; The momentum boost from spinning quickly (see comboStep above)`n"
+        . "; is capped at this multiplier. It stacks on top of baseNotches.`n"
+        . ";`n"
+        . "; Example: baseNotches=1.5 and maxCombo=3.0 means the fastest`n"
+        . "; spinning scrolls at most 1.5 x 3.0 = 4.5 steps per click`n"
+        . "; (before the hard ceiling maxNotches also kicks in).`n"
+        . ";`n"
+        . ";   2.0 = subtle maximum boost`n"
+        . ";   4.0 = strong maximum boost`n"
+        . ";   8.0 = extreme — scrolling becomes very aggressive at speed`n"
+        . "; ----------------------------------------------------------------`n"
+        . "maxCombo=3.0`n"
         . "`n"
-        . "; Clicks faster than this (ms) build the combo.`n"
-        . "comboWindow = 280`n"
+        . "; ----------------------------------------------------------------`n"
+        . "; HOW LONG CAN A PAUSE BE AND STILL KEEP THE MOMENTUM GOING? (ms)`n"
+        . ";`n"
+        . "; If you click the wheel again within this many milliseconds of`n"
+        . "; the previous click, the momentum keeps building (combo continues).`n"
+        . "; If you wait longer than this, momentum resets on the next click.`n"
+        . ";`n"
+        . ";   150 = only very fast continuous spinning builds combo`n"
+        . ";   250 = moderate — normal scrolling pace can build some combo`n"
+        . ";   400 = wide window — even leisurely scrolling builds momentum`n"
+        . ";`n"
+        . "; Lower this if momentum builds even when scrolling slowly.`n"
+        . "; ----------------------------------------------------------------`n"
+        . "comboWindow=250`n"
         . "`n"
-        . "; Momentum friction per frame. 0.78=snappy  0.86=balanced  0.92=floaty`n"
-        . "friction = 0.86`n"
+        . "; ----------------------------------------------------------------`n"
+        . "; HOW QUICKLY DOES THE GLIDE SLOW DOWN AND STOP?`n"
+        . ";`n"
+        . "; After you stop spinning the wheel, the scroll glides to a stop.`n"
+        . "; This controls how quickly that happens — like friction on ice.`n"
+        . ";`n"
+        . ";   0.75 = high friction — stops very quickly, snappy feel`n"
+        . ";   0.83 = medium friction — smooth, controlled stop`n"
+        . ";   0.91 = low friction — long glide, floaty feel`n"
+        . ";`n"
+        . "; Lower this if scrolling keeps going too long after you stop.`n"
+        . "; ----------------------------------------------------------------`n"
+        . "friction=0.83`n"
         . "`n"
-        . "; Stop animating when debt drops below this (notches).`n"
-        . "minDebt = 0.01`n"
+        . "; ----------------------------------------------------------------`n"
+        . "; MINIMUM GLIDE THRESHOLD`n"
+        . ";`n"
+        . "; The glide animation stops completely once the remaining momentum`n"
+        . "; drops below this value. Raise it to cut off the glide earlier`n"
+        . "; (fewer tiny micro-scroll steps at the tail end of the animation).`n"
+        . ";`n"
+        . ";   0.01 = very long tail, animates almost to zero`n"
+        . ";   0.02 = clean cutoff, recommended`n"
+        . ";   0.05 = short tail, stops noticeably sooner`n"
+        . "; ----------------------------------------------------------------`n"
+        . "minDebt=0.02`n"
         . "`n"
-        . "; Animation timer interval ms. Lower = smoother.`n"
-        . "frameMs = 8`n"
+        . "; ----------------------------------------------------------------`n"
+        . "; ANIMATION SMOOTHNESS (timer interval in milliseconds)`n"
+        . ";`n"
+        . "; How often the glide animation updates. Lower = smoother but`n"
+        . "; uses slightly more CPU. 8ms (~120fps) is imperceptible to the`n"
+        . "; human eye. No reason to change this unless you have performance`n"
+        . "; concerns on a very old machine.`n"
+        . ";`n"
+        . ";   8  = very smooth (~120 updates/sec)`n"
+        . ";   16 = smooth (~60 updates/sec), lighter on CPU`n"
+        . "; ----------------------------------------------------------------`n"
+        . "frameMs=8`n"
+        . "`n"
+        . "; ----------------------------------------------------------------`n"
+        . "; HOW MUCH DOES SPINNING SPEED AMPLIFY THE SCROLL?`n"
+        . ";`n"
+        . "; The faster you spin the wheel, the more each click scrolls —`n"
+        . "; on top of the combo boost. This controls how strongly that`n"
+        . "; speed amplification kicks in.`n"
+        . ";`n"
+        . "; Formula: budget = baseNotches x combo x (1 + speed x velInfluence)`n"
+        . ";`n"
+        . ";   0.1  = speed has very little extra effect`n"
+        . ";   0.35 = moderate speed amplification (default)`n"
+        . ";   0.6  = fast spinning significantly boosts each click`n"
+        . ";`n"
+        . "; Lower this if fast spinning feels disproportionately powerful`n"
+        . "; compared to slow scrolling.`n"
+        . "; ----------------------------------------------------------------`n"
+        . "velInfluence=0.35`n"
+        . "`n"
+        . "; ----------------------------------------------------------------`n"
+        . "; HOW STICKY IS THE SPEED MEMORY? (velocity smoothing)`n"
+        . ";`n"
+        . "; The script tracks how fast you are spinning and smooths it`n"
+        . "; over time so sudden jerky movements don't spike the scroll`n"
+        . "; amount. This controls the balance between old and new readings.`n"
+        . ";`n"
+        . "; Formula: smoothedSpeed = (old x velSmoothing) + (new x (1-velSmoothing))`n"
+        . ";`n"
+        . ";   0.2  = reacts quickly to speed changes, less smoothing`n"
+        . ";   0.45 = balanced smoothing (default)`n"
+        . ";   0.7  = very smooth, slow to respond to speed changes`n"
+        . ";`n"
+        . "; Raise this if scrolling speed feels erratic or spiky.`n"
+        . "; Lower this if acceleration feels sluggish to respond.`n"
+        . "; ----------------------------------------------------------------`n"
+        . "velSmoothing=0.45`n"
+        . "`n"
+        . "; ----------------------------------------------------------------`n"
+        . "; MAXIMUM SPEED CONTRIBUTION (velocity cap)`n"
+        . ";`n"
+        . "; The speed reading fed into the budget formula is capped at this`n"
+        . "; value, no matter how fast you spin. This prevents extreme`n"
+        . "; high-DPI mice or fast flicks from producing absurd scroll amounts.`n"
+        . ";`n"
+        . ";   1.0 = tight cap — fast spinning not much stronger than moderate`n"
+        . ";   2.5 = moderate cap (default)`n"
+        . ";   5.0 = loose cap — very fast spinning can produce strong bursts`n"
+        . ";`n"
+        . "; Lower this if ultra-fast flicks feel completely out of control.`n"
+        . "; ----------------------------------------------------------------`n"
+        . "velCap=2.5`n"
+        . "`n"
+        . "; ----------------------------------------------------------------`n"
+        . "; HOW LONG A PAUSE RESETS THE SPEED READING? (ms)`n"
+        . ";`n"
+        . "; If you pause scrolling longer than this many milliseconds,`n"
+        . "; the speed memory resets to zero — so your next scroll starts`n"
+        . "; fresh with no carry-over velocity from before the pause.`n"
+        . ";`n"
+        . ";   300 = short pause resets speed (more responsive)`n"
+        . ";   600 = moderate pause (default)`n"
+        . ";   900 = long pause — speed carries over even after a long gap`n"
+        . ";`n"
+        . "; Lower this if residual speed from a previous scroll unexpectedly`n"
+        . "; makes the next scroll too fast.`n"
+        . "; ----------------------------------------------------------------`n"
+        . "velTimeout=600`n"
     FileAppend(iniText, g_ini)
 }
 
-global g_baseNotches := CfgF("baseNotches", 2.0)
-global g_maxNotches  := CfgF("maxNotches",  14.0)
-global g_comboStep   := CfgF("comboStep",   0.5)
-global g_maxCombo    := CfgF("maxCombo",    4.0)
-global g_comboWindow := CfgI("comboWindow", 280)
-global g_friction    := CfgF("friction",    0.86)
-global g_minDebt     := CfgF("minDebt",     0.01)
-global g_frameMs     := CfgI("frameMs",     8)
+global g_baseNotches  := CfgF("baseNotches",  2.0)
+global g_maxNotches   := CfgF("maxNotches",   14.0)
+global g_comboStep    := CfgF("comboStep",    0.5)
+global g_maxCombo     := CfgF("maxCombo",     4.0)
+global g_comboWindow  := CfgI("comboWindow",  280)
+global g_friction     := CfgF("friction",     0.86)
+global g_minDebt      := CfgF("minDebt",      0.01)
+global g_frameMs      := CfgI("frameMs",      8)
+global g_velInfluence := CfgF("velInfluence", 0.35)
+global g_velSmoothing := CfgF("velSmoothing", 0.45)
+global g_velCap       := CfgF("velCap",       2.5)
+global g_velTimeout   := CfgI("velTimeout",   600)
 
 ; =====================================================================
 ;  PostWheelMsg — inject WM_MOUSEWHEEL directly into a window's queue
@@ -161,6 +369,7 @@ ScrollAccel(dir) {
     global g_lastTick, g_combo, g_velocity
     global g_baseNotches, g_maxNotches, g_comboStep, g_maxCombo
     global g_comboWindow, g_frameMs
+    global g_velInfluence, g_velSmoothing, g_velCap, g_velTimeout
 
     now   := A_TickCount
     delta := now - g_lastTick
@@ -199,16 +408,16 @@ ScrollAccel(dir) {
         g_combo := 1.0
 
     ; Velocity tracking
-    if (delta > 0 && delta < 600) {
+    if (delta > 0 && delta < g_velTimeout) {
         spd        := 300.0 / delta
-        g_velocity := g_velocity * 0.45 + spd * 0.55
+        g_velocity := g_velocity * g_velSmoothing + spd * (1.0 - g_velSmoothing)
     } else {
         g_velocity := 0.0
     }
 
     ; Budget calculation
-    velContrib := Min(g_velocity, 2.5)
-    budget     := g_baseNotches * g_combo * (1.0 + velContrib * 0.35)
+    velContrib := Min(g_velocity, g_velCap)
+    budget     := g_baseNotches * g_combo * (1.0 + velContrib * g_velInfluence)
     budget     := Min(budget, g_maxNotches)
 
     ; LAYER 1: Send() re-injects a genuine OS input event.
@@ -280,6 +489,15 @@ AnimateScroll() {
     else
         PostWheelMsg(curWin, -wheelDelta, cx, cy)
 }
+
+; =====================================================================
+;  Tray menu
+; =====================================================================
+A_TrayMenu.Add("Reload Config", (*) => ReloadConfig())
+A_TrayMenu.Add("Edit Config", (*) => Run("notepad.exe `"" g_ini "`""))
+A_TrayMenu.Add()
+A_TrayMenu.Add("Reload Script", (*) => Reload())
+A_TrayMenu.Add("Exit", (*) => ExitApp())
 
 ; =====================================================================
 ;  Hotkeys
