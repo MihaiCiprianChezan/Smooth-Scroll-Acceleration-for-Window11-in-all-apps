@@ -1,0 +1,28 @@
+name: Build Windows executable
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Compile AutoHotkey script
+        shell: powershell
+        run: .\build-windows.ps1
+
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v7
+        with:
+          name: Smooth-Scroll-Acceleration-Windows-x64
+          path: dist/Smooth-Scroll-Acceleration.exe
+          if-no-files-found: error
